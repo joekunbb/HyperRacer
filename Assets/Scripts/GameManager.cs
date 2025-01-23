@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -10,6 +11,11 @@ public class GameManager : MonoBehaviour
     
     [SerializeField] private MoveButton leftMoveButton;
     [SerializeField] private MoveButton rightMoveButton;
+    [SerializeField] private TMP_Text gasText;
+    
+    // 자동차
+    private CarController _carController;
+    
     
     //도로 오브젝트 풀
     private Queue<GameObject> _roadPool = new Queue<GameObject>();
@@ -61,7 +67,13 @@ public class GameManager : MonoBehaviour
         {
             activeRoad.transform.Translate(-Vector3.forward * Time.deltaTime);
         }
+        
+        // gas 정보 출력
+        gasText.text = _carController.Gas.ToString();
     }
+    
+    
+    
 
     private void StartGame()
     {
@@ -82,7 +94,7 @@ public class GameManager : MonoBehaviour
     
     #region 도로 생성 및 관리
     /// <summary>
-    /// 도로 생성 및 관리
+    /// 도로 오브젝트 풀 초기화
     /// </summary>
     
 
@@ -116,6 +128,13 @@ public class GameManager : MonoBehaviour
             GameObject road = Instantiate(roadPrefab, position, Quaternion.identity);
             _activeRoads.Add(road);
         }
+    }
+
+    public void DestroyRoad(GameObject road)
+    {
+        road.SetActive(false);
+        _activeRoads.Remove(road);
+        _roadPool.Enqueue(road);
     }
     
     #endregion

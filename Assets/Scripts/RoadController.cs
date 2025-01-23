@@ -14,7 +14,7 @@ public class RoadController : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            GameManager.Instance.SpawnRoad(transform.position += new Vector3(0,0, 10f));
+            GameManager.Instance.SpawnRoad(transform.position += new Vector3(0,0, 10));
         }
     }
 
@@ -26,7 +26,7 @@ public class RoadController : MonoBehaviour
     {
         if(other.CompareTag("Player"))
         {
-            
+            GameManager.Instance.DestroyRoad(gameObject);
         }
     }
 }
