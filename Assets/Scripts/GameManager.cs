@@ -6,23 +6,33 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    // 프리팹
     [SerializeField] private GameObject carPrefab;
     [SerializeField] private GameObject roadPrefab;
-    
+
+    // UI 관련
     [SerializeField] private MoveButton leftMoveButton;
     [SerializeField] private MoveButton rightMoveButton;
     [SerializeField] private TMP_Text gasText;
+    [SerializeField] private GameObject startPanelPrefab;
+    [SerializeField] private GameObject endPanelPrefab;
+    [SerializeField] private Transform canvasTransform;
     
     // 자동차
     private CarController _carController;
     
-    
-    //도로 오브젝트 풀
+    // 도로 오브젝트 풀
     private Queue<GameObject> _roadPool = new Queue<GameObject>();
     private int _roadPoolSize = 3;
     
     // 도로 이동
-    private List<GameObject> _activeRoads= new List<GameObject>();
+    private List<GameObject> _activeRoads = new List<GameObject>();
+    
+    int _roadIndex = 0;
+    
+    // 상태
+    public enum State { Start, Play, End }
+    public State GameState { get; private set; }
     
     // 싱글턴
     private static GameManager _instance;
@@ -33,9 +43,8 @@ public class GameManager : MonoBehaviour
             if (_instance == null)
             {
                 _instance = FindObjectOfType<GameManager>();
-                
             }
-             return _instance;
+            return _instance;
         }
     }
 
@@ -48,86 +57,166 @@ public class GameManager : MonoBehaviour
         else
         {
             _instance = this;
-            //DontDestroyOnLoad(gameObject); //강사님은 안 적으신거같음
         }
+        
+        Time.timeScale = 5f;
     }
-    
+
     private void Start()
     {
-        // road 오브젝트 풀 초기화
-        InitalizeRoadPool();
+        // Road 오브젝트 풀 초기화
+        InitializeRoadPool();
         
-        // 게임 시작
-        StartGame();
+        // 게임 상태 Start로 변경
+        GameState = State.Start;
+        
+        // // 게임 시작
+        // StartGame();
+        
+        // Start Panel 표시
+        ShowStartPanel();
     }
 
     private void Update()
     {
-        foreach (var activeRoad in _activeRoads)
+        // 게임 상태에 따라 동작
+        switch (GameState)
         {
-            activeRoad.transform.Translate(-Vector3.forward * Time.deltaTime);
-        }
+            case State.Start:
+                break;
+            case State.Play:
+                // 활성화 된 도로를 아래로 서서히 이동
+                foreach (var activeRoad in _activeRoads)
+                {
+                    activeRoad.transform.Translate(-Vector3.forward * Time.deltaTime);
+                }
         
-        // gas 정보 출력
-        gasText.text = _carController.Gas.ToString();
+                // Gas 정보 출력
+                if (_carController != null) gasText.text = _carController.Gas.ToString();
+                break;
+            case State.End:
+                break;
+        }
     }
-    
-    
-    
 
     private void StartGame()
     {
-        // 도로 생성 
-        //Instantiate(roadPrefab, new Vector3(0,0,0), Quaternion.identity);
+    // 만들어지는 도로의 index
+     
+        // 도로 생성
         SpawnRoad(Vector3.zero);
         
-        
         // 자동차 생성
-        var carController = Instantiate(carPrefab, new Vector3(0,0,-3f) , Quaternion.identity)
+        _carController = Instantiate(carPrefab, new Vector3(0, 0, -3f), Quaternion.identity)
             .GetComponent<CarController>();
         
-        //Left.rigth 무브버튼 자동차 컨트롤러 기능적용
-        leftMoveButton.OnMoveButtonDown += () => carController.Move(-1f);
-        rightMoveButton.OnMoveButtonDown += () => carController.Move(1f);
+        // Left, Right move button에 자동차 컨트롤 기능 적용
+        leftMoveButton.OnMoveButtonDown += () => _carController.Move(-1f);
+        rightMoveButton.OnMoveButtonDown += () => _carController.Move(1f);
+        
+        // 게임 상태를 Play로 변경
+        GameState = State.Play;
+        InitializeRoadPool();
+        //_roadIndex도 초기화 어케함?
     }
 
+    public void EndGame()
+    {
+        // 게임 상태 변경
+        GameState = State.End;
+        
+        // 자동차 제거
+        Destroy(_carController.gameObject);
+        
+        // 도로 제거
+        foreach (var activeRoad in _activeRoads)
+        {
+            activeRoad.SetActive(false);
+        }
+        
+        // 게임 오버 패널 표시
+        ShowEndPanel();
+        
+    }
+
+    #region UI
+
+    ///
+    /// 시작 화면을 표시
+    ///
+
+    void ShowStartPanel()
+    {
+        StartPanelController startPanelController = Instantiate(startPanelPrefab, canvasTransform)
+            .GetComponent<StartPanelController>();
+        startPanelController.OnStartButtonClick += () =>
+        {
+            StartGame();
+            Destroy(startPanelController.gameObject);
+        };
+    }
+    
+    // 게임오버 화면 표시
+    private void ShowEndPanel()
+    {
+        StartPanelController endPanelController = Instantiate(endPanelPrefab, canvasTransform)
+            .GetComponent<StartPanelController>();
+        endPanelController.OnStartButtonClick += () =>
+        {
+            Destroy(endPanelController.gameObject);
+            ShowStartPanel();
+        };
+    }
+    
+    
+    #endregion
+    
+    
     
     #region 도로 생성 및 관리
+
     /// <summary>
     /// 도로 오브젝트 풀 초기화
     /// </summary>
-    
-
-    private void InitalizeRoadPool()
+    private void InitializeRoadPool()
     {
+        _roadIndex = 0;
+        
         for (int i = 0; i < _roadPoolSize; i++)
         {
             GameObject road = Instantiate(roadPrefab);
             road.SetActive(false);
             _roadPool.Enqueue(road);
-        }
+        }    
     }
     
     /// <summary>
     /// 도로 오브젝트 풀에서 불러와 배치하는 함수
     /// </summary>
-    
     public void SpawnRoad(Vector3 position)
     {
+        GameObject road;
         if (_roadPool.Count > 0)
         {
-            GameObject road = _roadPool.Dequeue();
+            road = _roadPool.Dequeue();
             road.transform.position = position;
             road.SetActive(true);
-            
-            // 활성화 된 길을 움직이기 위해 list에 저장
-            _activeRoads.Add(road);
         }
         else
         {
-            GameObject road = Instantiate(roadPrefab, position, Quaternion.identity);
-            _activeRoads.Add(road);
+            road = Instantiate(roadPrefab, position, Quaternion.identity);
         }
+        
+        // 가스 아이템 생성
+        if (_roadIndex > 0 && _roadIndex % 2 == 0)
+        {
+            Debug.Log("Spawn Gas Road Index: " + _roadIndex);
+            road.GetComponent<RoadController>().SpawnGas();
+        }
+        
+        // 활성화 된 길을 움직이기 위해 List에 저장
+        _activeRoads.Add(road);
+        _roadIndex++;
     }
 
     public void DestroyRoad(GameObject road)
@@ -138,5 +227,5 @@ public class GameManager : MonoBehaviour
     }
     
     #endregion
-    
+
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,10 +8,7 @@ public class CarController : MonoBehaviour
     [SerializeField] private int gas = 100;
     [SerializeField] private float moveSpeed = 1f;
     
-    public int Gas
-    {
-        get => gas;    //경보
-    }
+    public int Gas { get => gas; }      // Gas 정보
 
     private void Start()
     {
@@ -21,28 +19,37 @@ public class CarController : MonoBehaviour
     {
         while (true)
         {
-            
             gas -= 10;
-            if (gas <= 0) break;
             yield return new WaitForSeconds(1f);
+            if (gas <= 0) break;
+            
         }
-        // TODO: 게임 종료
-    }
-    
-    public void Move(float directon)
-    {
-        transform.Translate(Vector3.right * (directon * Time.deltaTime));
-        transform.position = new Vector3(Mathf.Clamp(transform.position.x, -2.0f, 2.0f), 0, transform.position.z);
+        // 게임 종료
+        GameManager.Instance.EndGame();
     }
 
+    /// <summary>
+    /// 자동차 이동 메서드
+    /// </summary>
+    /// <param name="direction"></param>
+    public void Move(float direction)
+    {
+        transform.Translate(Vector3.right * (direction * moveSpeed * Time.deltaTime));
+        transform.position = new Vector3(Mathf.Clamp(transform.position.x, -1.5f, 1.5f), 0, transform.position.z);
+    }
+
+    /// <summary>
+    /// 가스 아이템 획득시 호출되는 메서드
+    /// </summary>
+    /// <param name="other"></param>
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Gas"))
         {
             gas += 30;
-            
-            // TODO: 가스 아이템 제거
+
+            // 가스 아이템 숨기기
+            other.gameObject.SetActive(false);
         }
     }
-    
 }

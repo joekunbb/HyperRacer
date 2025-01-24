@@ -130,6 +130,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c42108d89691574e8d75ce676efa384, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gas: 1000
+  moveSpeed: 1
 --- !u!65 &4731153517458550912
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -173,7 +175,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
